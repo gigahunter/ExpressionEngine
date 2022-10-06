@@ -1,10 +1,9 @@
-﻿using System;
+﻿using ExpressionEngine.Rules;
+using Sprache;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ExpressionEngine.Functions.Base;
-using ExpressionEngine.Rules;
-using Sprache;
 
 namespace ExpressionEngine
 {
@@ -58,7 +57,7 @@ namespace ExpressionEngine
                     .Except(Parse.String("@{"))
                     .Select(c => c.ToString());
 
-            #endregion
+            #endregion BasicAuxParsers
 
             var lBracket = Parse.Char('[');
             var rBracket = Parse.Char(']');
@@ -139,7 +138,7 @@ namespace ExpressionEngine
 
         private async ValueTask<ValueContainer> PreAnalyzeAndParse(string input)
         {
-            if (_functionDefinitions != null)
+            if (_functionDefinitions != null && _functionDefinitions.Count > 0)
             {
                 input = _functionDefinitions.Aggregate(input,
                     (current, functionDefinition) =>

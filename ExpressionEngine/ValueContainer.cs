@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ExpressionEngine
 {
@@ -17,6 +16,8 @@ namespace ExpressionEngine
     {
         private readonly object _value;
         private readonly ValueType _type;
+
+        public object Value { get => _value; }
 
         /// <summary>
         /// Creates Value Container from string
@@ -141,6 +142,12 @@ namespace ExpressionEngine
             _value = valueContainer._value;
         }
 
+        public ValueContainer(object obj)
+        {
+            _value = obj;
+            _type = ValueType.Object;
+        }
+
         public ValueContainer()
         {
             _type = ValueType.Null;
@@ -169,22 +176,22 @@ namespace ExpressionEngine
         {
             if (_value.GetType() == typeof(T))
             {
-                return (T) _value;
+                return (T)_value;
             }
 
             if (IsNumber() && (typeof(T) == typeof(decimal) || typeof(T) == typeof(double) ||
                                typeof(T) == typeof(float) || typeof(T) == typeof(int)))
             {
-                return (T) Convert.ChangeType(_value, typeof(T));
+                return (T)Convert.ChangeType(_value, typeof(T));
             }
-            
-            if(_type == ValueType.Array)
+
+            if (_type == ValueType.Array)
             {
                 switch (typeof(T))
                 {
                     case { } iEnumerable when iEnumerable == typeof(IEnumerable<ValueContainer>):
-                        return (T) GetValue<List<ValueContainer>>().AsEnumerable();
-                    // case { } array when array == typeof(ValueContainer[]):
+                        return (T)GetValue<List<ValueContainer>>().AsEnumerable();
+                        // case { } array when array == typeof(ValueContainer[]):
                         // return GetValue<List<ValueContainer>>().ToArray();
                 }
             }
@@ -211,7 +218,7 @@ namespace ExpressionEngine
                     throw new InvalidOperationException("Index operations can only be performed on arrays.");
                 }
 
-                ((List<ValueContainer>) _value)[i] = value;
+                ((List<ValueContainer>)_value)[i] = value;
             }
         }
 
@@ -318,33 +325,42 @@ namespace ExpressionEngine
             if (obj == null || obj.GetType() != GetType())
                 throw new InvalidOperationException("Cannot compare these two...");
 
-            var other = (ValueContainer) obj;
+            var other = (ValueContainer)obj;
 
             switch (_value)
             {
                 case bool b:
                     return b.CompareTo(other._value);
+
                 case int i when other._type == ValueType.Integer:
                     return i.CompareTo(other._value);
+
                 case int _ when other.Type() == ValueType.Float:
                     return GetValue<decimal>().CompareTo(other._value);
+
                 case float _:
                 case double _:
                     throw new ExpressionEngineException("float or double not possible");
                 case decimal f when other._type == ValueType.Float:
                     return f.CompareTo(other._value);
+
                 case decimal f when other._type == ValueType.Integer:
                     return f.CompareTo(other.GetValue<decimal>());
+
                 case string s:
                     return s.CompareTo(other._value);
+
                 case Guid g:
                     return g.CompareTo(other._value);
+
                 case Dictionary<string, ValueContainer> d:
-                    var d2 = (Dictionary<string, ValueContainer>) other._value;
+                    var d2 = (Dictionary<string, ValueContainer>)other._value;
                     return d.Count - d2.Count;
+
                 case List<ValueContainer> l:
-                    var l2 = (List<ValueContainer>) other._value;
+                    var l2 = (List<ValueContainer>)other._value;
                     return l.Count() - l2.Count();
+
                 default:
                     return -1;
             }
@@ -358,24 +374,24 @@ namespace ExpressionEngine
             switch (_type)
             {
                 case ValueType.Array when other._type == ValueType.Array:
-                {
-                    var thisArray = (List<ValueContainer>) _value;
-                    var otherArray = other.GetValue<List<ValueContainer>>();
+                    {
+                        var thisArray = (List<ValueContainer>)_value;
+                        var otherArray = other.GetValue<List<ValueContainer>>();
 
-                    return thisArray.SequenceEqual(otherArray);
-                }
+                        return thisArray.SequenceEqual(otherArray);
+                    }
                 case ValueType.Object when other._type == ValueType.Object:
-                {
-                    var thisDict = AsDict();
-                    var otherDict = other.AsDict();
+                    {
+                        var thisDict = AsDict();
+                        var otherDict = other.AsDict();
 
-                    return thisDict.Count == otherDict.Count && !thisDict.Except(otherDict).Any();
-                }
+                        return thisDict.Count == otherDict.Count && !thisDict.Except(otherDict).Any();
+                    }
                 case ValueType.Integer:
                 case ValueType.Float:
-                {
-                    return 0 == CompareTo(other);
-                }
+                    {
+                        return 0 == CompareTo(other);
+                    }
                 default:
                     return Equals(_value, other._value) && _type == other._type;
             }
@@ -385,12 +401,12 @@ namespace ExpressionEngine
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((ValueContainer) obj);
+            return obj.GetType() == GetType() && Equals((ValueContainer)obj);
         }
 
         public override int GetHashCode()
         {
-            return new {_type, _value}.GetHashCode();
+            return new { _type, _value }.GetHashCode();
         }
 
         public bool ContainsKey(string key)
@@ -435,24 +451,25 @@ namespace ExpressionEngine
             switch (json)
             {
                 case JObject _:
-                {
-                    var dictionary = json.OfType<JProperty>().ToDictionary(pair => pair.Name,
-                        token => { return JsonToValueContainer(token.Value, expressionEngine); });
+                    {
+                        var dictionary = json.OfType<JProperty>().ToDictionary(pair => pair.Name,
+                            token => { return JsonToValueContainer(token.Value, expressionEngine); });
 
-                    var pairs = await Task.WhenAll
-                    (
-                        dictionary.Select
+                        var pairs = await Task.WhenAll
                         (
-                            async pair => new {pair.Key, Value = await pair.Value}
-                        )
-                    );
+                            dictionary.Select
+                            (
+                                async pair => new { pair.Key, Value = await pair.Value }
+                            )
+                        );
 
-                    return new ValueContainer(pairs.ToDictionary(pair => pair.Key, pair => pair.Value));
-                }
+                        return new ValueContainer(pairs.ToDictionary(pair => pair.Key, pair => pair.Value));
+                    }
                 case JArray jArray:
                     return jArray.Count == 0
                         ? new ValueContainer()
                         : await JArrayToValueContainer(jArray, expressionEngine);
+
                 case JValue jValue:
                     if (jValue.HasValues)
                     {
@@ -475,6 +492,7 @@ namespace ExpressionEngine
                         _ => throw new ExpressionEngineException(
                             $"{jValue.Type} is not yet supported in ValueContainer conversion")
                     };
+
                 default:
                     throw new ExpressionEngineException("Could not parse JToken to ValueContainer. " + json.Type);
             }

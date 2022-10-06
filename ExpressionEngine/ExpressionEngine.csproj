@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+        <TargetFrameworks>netcoreapp3.1;net6.0</TargetFrameworks>
 
         <PackageId>Delegate.ExpressionEngine</PackageId>
         <Authors>Delegate A/S,thygesteffensen</Authors>
@@ -19,6 +19,10 @@
 
     <ItemGroup>
       <Folder Include="Functions\Implementations\Miscellaneous" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\.editorconfig" Link=".editorconfig" />
     </ItemGroup>
 
 </Project>
