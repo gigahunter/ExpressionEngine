@@ -320,7 +320,7 @@ namespace ExpressionEngine
             return _type == ValueType.Null;
         }
 
-        public int CompareTo(object? obj)
+        public int CompareTo(object obj)
         {
             if (obj == null || obj.GetType() != GetType())
                 throw new InvalidOperationException("Cannot compare these two...");

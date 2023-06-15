@@ -1,18 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using ExpressionEngine.Functions.Base;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ExpressionEngine.Functions.Base;
 
 namespace ExpressionEngine.Functions.Implementations.CollectionFunctions
 {
     public class UnionFunction : IFunction
     {
-        public async ValueTask<ValueContainer> ExecuteFunction(params ValueContainer[] parameters)
+        public ValueTask<ValueContainer> ExecuteFunction(params ValueContainer[] parameters)
         {
             return parameters[0].Type() switch
             {
-                ValueType.Array => UnionList(parameters),
-                ValueType.Object => UnionDict(parameters),
+                ValueType.Array => ValueTask.FromResult(UnionList(parameters)),
+                ValueType.Object => ValueTask.FromResult(UnionDict(parameters)),
                 _ => throw new ExpressionEngineException(
                     $"Can only union Array and Object, not {parameters[0].Type()}.")
             };
